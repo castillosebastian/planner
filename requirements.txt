@@ -1,0 +1,10 @@
+python-dotenv
+datasets 
+trl 
+peft 
+bitsandbytes 
+sentencepiece 
+wandb
+semantic-kernel
+google-generativeai
+beautifulsoup4
