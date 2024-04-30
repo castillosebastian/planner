@@ -49,7 +49,7 @@ def score_page(embedding, keywords):
 def fetch_pages(keywords, subscription_key, num_pages):
     search_url = "https://api.bing.microsoft.com/v7.0/search"
     headers = {"Ocp-Apim-Subscription-Key": subscription_key}
-    params = {"q": keywords, "textDecorations": True, "textFormat": "HTML", "count": num_pages}
+    params = {"q": keywords, "textDecorations": False, "textFormat": "HTML", "count": num_pages}
 
     session = requests.Session()  # Using a session object
     try:
@@ -101,6 +101,9 @@ def main(subscription_key=None,
     # Save search results as json file
     with open("search_results.json", "w", encoding="utf-8") as file:
         json.dump(cleaned_results, file, ensure_ascii=False, indent=4)
+
+
+    #https://docs.llamaindex.ai/en/stable/examples/vector_stores/FaissIndexDemo/
 
     # Get embedding for each page
     for page in cleaned_results:
