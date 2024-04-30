@@ -60,14 +60,14 @@ def search_and_rank(keywords, num_pages):
         page["score"] = score_page(page["embedding"], keywords)
 
     # Sort the results by score in descending order
-    bing_search_results.sort(key=lambda x: x["score"], reverse=True)
+    #bing_search_results.sort(key=lambda x: x["score"], reverse=True)
 
     # Select the top 3 pages
-    bing_search_results = bing_search_results[:3]
+    #bing_search_results = bing_search_results[:3]
 
     # Print the top 3 pages
-    for i, page in enumerate(bing_search_results):
-        print(f"Page {i+1}: {page['url']}")
+    #for i, page in enumerate(bing_search_results):
+    #    print(f"Page {i+1}: {page['url']}")
     
 
     # Save search results as json file
@@ -77,4 +77,4 @@ def search_and_rank(keywords, num_pages):
     print("Search and download complete.")
 
 # Example usage
-search_and_rank("finance function", 10)
+search_and_rank("finance function", 3)
