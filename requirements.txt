@@ -8,3 +8,6 @@ wandb
 semantic-kernel
 google-generativeai
 beautifulsoup4
+selenium
+webdriver-manager
+llama-index
