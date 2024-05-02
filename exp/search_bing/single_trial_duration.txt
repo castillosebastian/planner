@@ -1,0 +1,3 @@
+Time to fetch pages: 7.056027173995972 seconds
+Time to clean text: 0.382918119430542 seconds
+Time score documents: 1.4307055473327637 seconds

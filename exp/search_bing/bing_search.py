@@ -8,8 +8,20 @@ from requests.exceptions import RequestException
 from time import sleep
 import time
 from llama_index.core.node_parser import SentenceSplitter
+from sentence_transformers import SentenceTransformer, util
+from sentence_transformers.util import cos_sim
 from dotenv import load_dotenv
 load_dotenv()
+
+# Embedding with SentenceTransformer
+# https://www.sbert.net/docs/pretrained_models.html
+#https://huggingface.co/hkunlp/instructor-large
+# To work locally do:
+#   git clone https://huggingface.co/hkunlp/instructor-large
+#   git clone https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+
+#model = SentenceTransformer('./instructor-large')
+model = SentenceTransformer('./all-MiniLM-L6-v2')
 
 def clean_and_split_text(pages):
     cleaned_pages = []
@@ -29,22 +41,22 @@ def clean_and_split_text(pages):
             # Remove non-ASCII characters
             content = content.encode('ascii', 'ignore').decode('ascii')
             # Split the content into sentences
-            content = SentenceSplitter(chunk_size=1000).split_text(content)
-            # Update the page content
-            page["content"] = content
-            cleaned_pages.append(page)
+            content = SentenceSplitter(chunk_size=1000).split_text(content)            
+            new_content = {
+                "url": page["url"],
+                "content": content,            
+            }            
+            # Update the page content            
+            cleaned_pages.append(new_content)
+
         except Exception as e:
             print(f"Error processing page: {e}")
             continue
     return cleaned_pages
 
 
-def get_embedding(text):
-    pass
-
-def score_page(embedding, keywords):
-    pass
-
+def get_embedding(embedding_model, doc):                
+    return  embedding_model.encode(doc)    
 
 def fetch_pages(keywords, subscription_key, num_pages):
     search_url = "https://api.bing.microsoft.com/v7.0/search"
@@ -96,38 +108,49 @@ def main(subscription_key=None,
     cleaned_results = clean_and_split_text(results)
     end = time.time()
     print(f"Time to clean text: {end - start} seconds")
-
     
     # Save search results as json file
-    with open("search_results.json", "w", encoding="utf-8") as file:
-        json.dump(cleaned_results, file, ensure_ascii=False, indent=4)
+    # with open("search_results.json", "w", encoding="utf-8") as file:
+    #     json.dump(cleaned_results, file, ensure_ascii=False, indent=4)         
+    # Instruct-large
+    # query = "what is a finance function?"
+    # query_instruction = (
+    #     "Represent the user's question for retrieving supporting documents: "
+    # )    
+    # corpus_instruction = "Represent the BingSearch document for retrieval: "
+    # query_embedding = model.encode(query, prompt=query_instruction)
+    # corpus_embeddings = model.encode(cleaned_results, prompt=corpus_instruction)
+    # similarities = cos_sim(query_embedding, corpus_embeddings)
+    # print(similarities)
+    
+    # All-MiniLM-L6-v2
+    start = time.time()
+    query_embedding = model.encode(keywords, convert_to_tensor=True)
+    scored_documents = []
+    for docs in cleaned_results:
+        for chunk in docs["content"]:            
+            embedding = get_embedding(model, chunk)
+            score = cos_sim(query_embedding, embedding)
+            url = docs["url"]
+            scored_documents.append((score.item(), chunk, url))
 
+    # Sort by score in descending order
+    scored_documents.sort(reverse=True, key=lambda x: x[0])
+    end = time.time()
+    print(f"Time score documents: {end - start} seconds")
+    
+    # Select the top 5 pages
+    top_documents = scored_documents[:5]
 
-    #https://docs.llamaindex.ai/en/stable/examples/vector_stores/FaissIndexDemo/
+    # Print top N documents and their scores
+    for score, doc, url in top_documents:
+        print('-'*50)
+        print(f"Score: {score},\nURL: {url},\nDocument: {doc}")
+        print('-'*50)
 
-    # Get embedding for each page
-    for page in cleaned_results:
-        page["embedding"] = get_embedding(page["content"])
-
-    # Score each page based on the embedding and the keywords
-    for page in cleaned_results:
-        page["score"] = score_page(page["embedding"], keywords)
-
-    # Sort the results by score in descending order
-    #cleaned_results.sort(key=lambda x: x["score"], reverse=True)
-
-    # Select the top 3 pages
-    #cleaned_results = cleaned_results[:3]
-
-    # Print the top 3 pages
-    #for i, page in enumerate(cleaned_results):
-    #    print(f"Page {i+1}: {page['url']}")
-            
-    ## Example usage
-    #search_and_rank("finance function", 10)
-
-    print(cleaned_results)
-    print("Search and download complete.")
+    # Save top documents as json file
+    with open("top_documents.json", "w", encoding="utf-8") as file:
+        json.dump(top_documents, file, ensure_ascii=False, indent=4)
 
 if __name__ == "__main__":  
     subscription_key = os.environ['BING_SEARCH_KEY']
